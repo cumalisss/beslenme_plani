@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2C2C2A" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Beslenme" />
+  <title>Beslenme Planım</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F7F5F0; --surface: #FFFFFF; --surface2: #F0EDE6;
+      --text: #1A1A18; --text2: #5F5E5A; --text3: #888780;
+      --border: rgba(44,44,42,0.12); --border2: rgba(44,44,42,0.22);
+      --green-bg: #EAF3DE; --green-txt: #3B6D11;
+      --amber-bg: #FAEEDA; --amber-txt: #854F0B;
+      --blue-bg: #E6F1FB; --blue-txt: #185FA5;
+      --purple-bg: #EEEDFE; --purple-txt: #534AB7;
+      --accent: #2C2C2A; --radius: 14px; --radius-sm: 8px;
+      --green: #639922; --amber: #BA7517; --red: #E24B4A; --blue: #185FA5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141412; --surface: #1E1E1C; --surface2: #252523;
+        --text: #F1EFE8; --text2: #B4B2A9; --text3: #888780;
+        --border: rgba(241,239,232,0.1); --border2: rgba(241,239,232,0.2);
+        --green-bg: #173404; --green-txt: #C0DD97;
+        --amber-bg: #412402; --amber-txt: #FAC775;
+        --blue-bg: #042C53; --blue-txt: #85B7EB;
+        --purple-bg: #26215C; --purple-txt: #AFA9EC;
+        --accent: #F1EFE8;
+      }
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    .app { max-width: 540px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+
+    nav { display: flex; background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0 2px; position: sticky; top: 0; z-index: 100; }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 7px; border: none; background: transparent; cursor: pointer; color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 500; transition: color 0.15s; }
+    .nav-btn .icon { font-size: 17px; }
+    .nav-btn.active { color: var(--text); }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text); margin-top: 1px; opacity: 0; transition: opacity 0.15s; }
+    .nav-btn.active .nav-dot { opacity: 1; }
+
+    .content { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 72px); -webkit-overflow-scrolling: touch; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .page-header { padding: 8px 0 14px; border-bottom: 0.5px solid var(--border); margin-bottom: 18px; display: flex; align-items: flex-end; justify-content: space-between; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 22px; line-height: 1.1; }
+    .page-sub { font-size: 12px; color: var(--text3); font-weight: 300; margin-top: 3px; }
+    .day-badge { font-size: 11px; font-weight: 500; color: var(--text3); background: var(--surface2); border: 0.5px solid var(--border); border-radius: 20px; padding: 4px 11px; white-space: nowrap; }
+
+    /* TABS */
+    .tabs { display: flex; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; gap: 3px; margin-bottom: 18px; }
+    .tab { flex: 1; padding: 8px 0; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; border: none; border-radius: 6px; background: transparent; color: var(--text3); cursor: pointer; transition: all 0.2s; }
+    .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .pane { display: none; }
+    .pane.active { display: block; }
+
+    /* MEAL PLAN */
+    .option-group { margin-bottom: 24px; }
+    .option-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .option-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+    .meal-grid { display: grid; gap: 8px; }
+    .sport-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .nosport-grid { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 380px) { .sport-grid, .nosport-grid { grid-template-columns: 1fr; } }
+    .meal-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .tag { display: inline-block; font-size: 10px; font-weight: 500; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 20px; width: fit-content; }
+    .tag-lunch { background: var(--green-bg); color: var(--green-txt); }
+    .tag-pre { background: var(--amber-bg); color: var(--amber-txt); }
+    .tag-dinner { background: var(--blue-bg); color: var(--blue-txt); }
+    .items { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .items li { font-size: 12px; color: var(--text2); line-height: 1.4; padding-left: 10px; position: relative; }
+    .items li::before { content: ''; position: absolute; left: 0; top: 6px; width: 3px; height: 3px; border-radius: 50%; background: var(--border2); }
+
+    /* DAY CARDS (shared tracker + sport) */
+    .day-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 8px; }
+    .day-card.today { border-color: var(--accent); border-width: 1.5px; }
+    .day-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+    .day-name { font-size: 14px; font-weight: 500; }
+    .day-date { font-size: 12px; color: var(--text3); margin-top: 1px; }
+    .today-label { font-size: 10px; font-weight: 500; background: var(--accent); color: var(--bg); padding: 3px 9px; border-radius: 20px; }
+    .future-label { font-size: 11px; color: var(--text3); }
+
+    .check-row { display: flex; gap: 7px; }
+    .check-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 3px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: transparent; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; color: var(--text3); transition: all 0.15s; }
+    .check-btn:disabled { opacity: 0.28; cursor: not-allowed; }
+    .c-lunch  { background: var(--green-bg);  color: var(--green-txt);  border-color: transparent; }
+    .c-pre    { background: var(--amber-bg);  color: var(--amber-txt);  border-color: transparent; }
+    .c-dinner { background: var(--blue-bg);   color: var(--blue-txt);   border-color: transparent; }
+    .c-sport  { background: var(--purple-bg); color: var(--purple-txt); border-color: transparent; }
+
+    .day-score { display: flex; align-items: center; gap: 8px; margin-top: 11px; padding-top: 11px; border-top: 0.5px solid var(--border); }
+    .score-bar-wrap { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .score-bar { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+    .score-pct { font-size: 11px; font-weight: 500; color: var(--text3); min-width: 30px; text-align: right; }
+
+    /* STATS */
+    .stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .stat-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 13px 10px; text-align: center; }
+    .stat-val { font-size: 22px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
+    .stat-lbl { font-size: 11px; color: var(--text3); }
+    .chart-section { margin-bottom: 22px; }
+    .chart-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 10px; }
+    .chart-wrap { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; }
+
+    .install-banner { background: var(--accent); color: var(--bg); border-radius: var(--radius-sm); padding: 11px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; margin-bottom: 16px; }
+    .install-banner span { flex: 1; line-height: 1.4; }
+    .install-btn { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--accent); background: var(--bg); border: none; border-radius: 6px; padding: 5px 11px; cursor: pointer; white-space: nowrap; }
+    .dismiss-btn { background: none; border: none; color: rgba(255,255,255,0.45); font-size: 18px; cursor: pointer; padding: 0; line-height: 1; }
+
+    .section-divider { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; margin: 16px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .section-divider::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <nav>
+    <button class="nav-btn active" data-page="plan" onclick="showPage('plan')">
+      <span class="icon">🥗</span>Plan<span class="nav-dot"></span>
+    </button>
+    <button class="nav-btn" data-page="diet" onclick="showPage('diet')">
+      <span class="icon">✅</span>Diyet<span class="nav-dot"></span>
+    </button>
+    <button class="nav-btn" data-page="sport" onclick="showPage('sport')">
+      <span class="icon">🏋️</span>Spor<span class="nav-dot"></span>
+    </button>
+    <button class="nav-btn" data-page="stats" onclick="showPage('stats')">
+      <span class="icon">📊</span>İstatistik<span class="nav-dot"></span>
+    </button>
+  </nav>
+
+  <div class="content">
+
+    <!-- ── PLAN ── -->
+    <div class="page active" id="page-plan">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Beslenme Planım</div>
+          <div class="page-sub">3 seçenekli haftalık plan</div>
+        </div>
+        <div class="day-badge" id="day-badge">—</div>
+      </div>
+
+      <div id="install-banner" class="install-banner" style="display:none;">
+        <span>Ana ekrana ekleyerek uygulama gibi kullan.</span>
+        <button class="install-btn" id="install-btn">Ekle</button>
+        <button class="dismiss-btn" id="dismiss-btn">×</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="sp" onclick="showTab('sp')">🏋️ Spor Günü</button>
+        <button class="tab" data-tab="ns" onclick="showTab('ns')">🚶 Sporsuz Gün</button>
+      </div>
+
+      <div class="pane active" id="pane-sp">
+        <div class="option-group">
+          <div class="option-label">Seçenek 1</div>
+          <div class="meal-grid sport-grid">
+            <div class="meal-card"><span class="tag tag-lunch">Öğle 12:30</span><ul class="items"><li>Az çorba</li><li>2 adet lahmacun</li><li>300 ml ayran</li><li>Sınırsız yeşillik ve limon</li></ul></div>
+            <div class="meal-card"><span class="tag tag-pre">Spor Öncesi</span><ul class="items"><li>1 proteinli süt latte</li><li>3 orta boy hurma</li></ul></div>
+            <div class="meal-card"><span class="tag tag-dinner">Akşam 19:00</span><ul class="items"><li>120g kıyma (soğan-sarımsak-salça)</li><li>3 yumurta</li><li>50g tam tahıllı ekmek</li><li>Sınırsız yeşillik, domates, salatalık, kapya, havuç</li></ul></div>
+          </div>
+        </div>
+        <div class="option-group">
+          <div class="option-label">Seçenek 2</div>
+          <div class="meal-grid sport-grid">
+            <div class="meal-card"><span class="tag tag-lunch">Öğle 12:30</span><ul class="items"><li>1,5 porsiyon tavuklu pilav</li><li>300 ml ayran</li><li>Mümkünse salata</li></ul></div>
+            <div class="meal-card"><span class="tag tag-pre">Spor Öncesi</span><ul class="items"><li>1 yüksek protein quark yoğurt</li><li>1 yemek kaşığı bal + kakao</li><li>100g yaban mersini</li></ul></div>
+            <div class="meal-card"><span class="tag tag-dinner">Akşam 19:00</span><ul class="items"><li>180g dana kavurma</li><li>200g mantar (zeytinyağlı sote)</li><li>75g tam tahıllı ekmek</li><li>Sınırsız yeşillik, domates, salatalık</li></ul></div>
+          </div>
+        </div>
+        <div class="option-group">
+          <div class="option-label">Seçenek 3</div>
+          <div class="meal-grid sport-grid">
+            <div class="meal-card"><span class="tag tag-lunch">Öğle 12:30</span><ul class="items"><li>1 porsiyon etli baklagil</li><li>1 porsiyon pilav</li><li>1 kase cacık</li><li>Mümkünse mevsim salata</li></ul></div>
+            <div class="meal-card"><span class="tag tag-pre">Spor Öncesi</span><ul class="items"><li>3 ince dilim kaşar peyniri</li><li>2 dilim tam buğday ekmek ile sandviç/tost</li></ul></div>
+            <div class="meal-card"><span class="tag tag-dinner">Akşam 19:00</span><ul class="items"><li>120g nohut + 80g labne</li><li>2 yemek kaşığı zeytinyağı + 55g avokado</li><li>4 tam ceviz + 1 muz</li><li>Sınırsız mevsim salata</li></ul></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-ns">
+        <div class="option-group">
+          <div class="option-label">Seçenek 1</div>
+          <div class="meal-grid nosport-grid">
+            <div class="meal-card"><span class="tag tag-lunch">Öğle 12:30</span><ul class="items"><li>1 porsiyon tavuk şiş (lavaşsız)</li><li>300 ml ayran</li><li>1 adet muz</li><li>Sınırsız bol renkli salata</li></ul></div>
+            <div class="meal-card"><span class="tag tag-dinner">Akşam</span><ul class="items"><li>Sınırsız fırın sebze</li><li>4 yemek kaşığı zeytinyağı, bol baharat</li><li>250g yoğurt</li></ul></div>
+          </div>
+        </div>
+        <div class="option-group">
+          <div class="option-label">Seçenek 2</div>
+          <div class="meal-grid nosport-grid">
+            <div class="meal-card"><span class="tag tag-lunch">Öğle 12:30</span><ul class="items"><li>1,5 porsiyon döner / et / köfte</li><li>200 ml ayran</li><li>Sınırsız bol renkli salata</li></ul></div>
+            <div class="meal-card"><span class="tag tag-dinner">Akşam</span><ul class="items"><li>400g mantar sote (zeytinyağlı, soğanlı)</li><li>25g tam tahıllı ekmek</li><li>Sınırsız renkli salata</li></ul></div>
+          </div>
+        </div>
+        <div class="option-group">
+          <div class="option-label">Seçenek 3</div>
+          <div class="meal-grid nosport-grid">
+            <div class="meal-card"><span class="tag tag-lunch">Öğle 12:30</span><ul class="items"><li>1 kase günün çorbası</li><li>1 porsiyon etli sebze yemeği</li><li>1 porsiyon yoğurt</li><li>Sınırsız bol renkli salata</li></ul></div>
+            <div class="meal-card"><span class="tag tag-dinner">Akşam</span><ul class="items"><li>245g ızgara et / tavuk / köfte</li><li>(veya 400g ızgara balık)</li><li>110g olgun avokado</li><li>Sınırsız renkli salata</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DİYET TAKİP ── -->
+    <div class="page" id="page-diet">
+      <div class="page-header" style="display:block; padding-bottom:14px;">
+        <div class="page-title">Diyet Takibi</div>
+        <div class="page-sub">6 – 20 Nisan 2025 · Her öğünü işaretle</div>
+      </div>
+      <div id="diet-list"></div>
+    </div>
+
+    <!-- ── SPOR TAKİP ── -->
+    <div class="page" id="page-sport">
+      <div class="page-header" style="display:block; padding-bottom:14px;">
+        <div class="page-title">Spor Takibi</div>
+        <div class="page-sub">Pzt · Sal · Çar — 15 günlük program</div>
+      </div>
+      <div id="sport-list"></div>
+    </div>
+
+    <!-- ── İSTATİSTİK ── -->
+    <div class="page" id="page-stats">
+      <div class="page-header" style="display:block; padding-bottom:14px;">
+        <div class="page-title">İstatistikler</div>
+        <div class="page-sub">6 – 20 Nisan 2025</div>
+      </div>
+
+      <div class="section-divider">Diyet Uyumu</div>
+      <div class="stat-cards">
+        <div class="stat-card"><div class="stat-val" id="s-diet-pct">—</div><div class="stat-lbl">Genel Uyum</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-diet-meals">—</div><div class="stat-lbl">Öğün</div></div>
+      </div>
+
+      <div class="section-divider">Spor Uyumu</div>
+      <div class="stat-cards">
+        <div class="stat-card"><div class="stat-val" id="s-sport-pct">—</div><div class="stat-lbl">Spora Katılım</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-sport-days">—</div><div class="stat-lbl">Spor Günü</div></div>
+      </div>
+
+      <div class="chart-section">
+        <div class="chart-title">Günlük diyet uyumu (öğün %)</div>
+        <div class="chart-wrap"><canvas id="barChart" height="150"></canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-title">Kümülatif diyet uyumu</div>
+        <div class="chart-wrap"><canvas id="lineChart" height="150"></canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-title">Spor katılımı (Pzt/Sal/Çar)</div>
+        <div class="chart-wrap"><canvas id="sportChart" height="120"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const START = new Date('2025-04-06T00:00:00');
+const TOTAL_DAYS = 15;
+const SPORT_DAYS = [1, 2, 3]; // 1=Mon, 2=Tue, 3=Wed
+const DAYS_TR = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+
+function getDate(i) { const d = new Date(START); d.setDate(d.getDate() + i); return d; }
+function isSport(i) { return SPORT_DAYS.includes(getDate(i).getDay()); }
+function getDietMeals(i) { return isSport(i) ? ['lunch','pre','dinner'] : ['lunch','dinner']; }
+
+function todayIdx() {
+  const n = new Date(); n.setHours(0,0,0,0);
+  const s = new Date(START); s.setHours(0,0,0,0);
+  return Math.round((n - s) / 86400000);
+}
+
+// ── STORAGE ─────────────────────────────────────────────────────────────────
+function loadDiet() {
+  const d = {};
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    d[i] = {};
+    ['lunch','pre','dinner'].forEach(m => { d[i][m] = localStorage.getItem(`diet_${i}_${m}`) === '1'; });
+  }
+  return d;
+}
+function loadSport() {
+  const s = {};
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    s[i] = localStorage.getItem(`sport_${i}`) === '1';
+  }
+  return s;
+}
+function saveDiet(i, m, v) { localStorage.setItem(`diet_${i}_${m}`, v ? '1' : '0'); }
+function saveSport(i, v) { localStorage.setItem(`sport_${i}`, v ? '1' : '0'); }
+
+let diet = loadDiet();
+let sport = loadSport();
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function scoreColor(pct) {
+  return pct === 100 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : pct > 0 ? 'var(--red)' : 'var(--surface2)';
+}
+
+function updateDayScore(i, meals) {
+  const checked = meals.filter(m => diet[i][m]).length;
+  const pct = Math.round((checked / meals.length) * 100);
+  const bar = document.getElementById(`dbar-${i}`);
+  const lbl = document.getElementById(`dpct-${i}`);
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = scoreColor(pct); }
+  if (lbl) lbl.textContent = pct + '%';
+}
+
+function updateSportScore(i) {
+  const bar = document.getElementById(`sbar-${i}`);
+  const lbl = document.getElementById(`spct-${i}`);
+  const pct = sport[i] ? 100 : 0;
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = pct === 100 ? 'var(--green)' : 'var(--surface2)'; }
+  if (lbl) lbl.textContent = pct === 100 ? '✓ Yapıldı' : '—';
+}
+
+// ── RENDER DIET TRACKER ─────────────────────────────────────────────────────
+function renderDiet() {
+  const container = document.getElementById('diet-list');
+  container.innerHTML = '';
+  const today = todayIdx();
+
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    const date = getDate(i);
+    const meals = getDietMeals(i);
+    const isToday = i === today;
+    const isFuture = i > today;
+    const sportDay = isSport(i);
+    const checked = meals.filter(m => diet[i][m]).length;
+    const pct = Math.round((checked / meals.length) * 100);
+
+    const card = document.createElement('div');
+    card.className = 'day-card' + (isToday ? ' today' : '');
+    card.innerHTML = `
+      <div class="day-card-top">
+        <div>
+          <div class="day-name">${DAYS_TR[date.getDay()]} <span style="font-size:12px;">${sportDay ? '🏋️' : '🚶'}</span></div>
+          <div class="day-date">${date.getDate()} ${MONTHS_TR[date.getMonth()]}</div>
+        </div>
+        ${isToday ? '<span class="today-label">Bugün</span>' : isFuture ? '<span class="future-label">Bekliyor</span>' : ''}
+      </div>
+      <div class="check-row" id="dcheck-${i}"></div>
+      <div class="day-score">
+        <div class="score-bar-wrap"><div class="score-bar" id="dbar-${i}" style="width:${pct}%;background:${scoreColor(pct)};"></div></div>
+        <div class="score-pct" id="dpct-${i}">${pct}%</div>
+      </div>`;
+    container.appendChild(card);
+
+    const row = document.getElementById(`dcheck-${i}`);
+    const labels = { lunch: '🥗 Öğle', pre: '⚡ Ara', dinner: '🌙 Akşam' };
+    const cls    = { lunch: 'c-lunch', pre: 'c-pre', dinner: 'c-dinner' };
+    meals.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'check-btn' + (diet[i][m] ? ` ${cls[m]}` : '');
+      btn.disabled = isFuture;
+      btn.innerHTML = `<span>${diet[i][m] ? '✓' : '○'}</span>${labels[m]}`;
+      btn.addEventListener('click', () => {
+        diet[i][m] = !diet[i][m];
+        saveDiet(i, m, diet[i][m]);
+        btn.className = 'check-btn' + (diet[i][m] ? ` ${cls[m]}` : '');
+        btn.innerHTML = `<span>${diet[i][m] ? '✓' : '○'}</span>${labels[m]}`;
+        updateDayScore(i, meals);
+        if (document.getElementById('page-stats').classList.contains('active')) updateStats();
+      });
+      row.appendChild(btn);
+    });
+  }
+}
+
+// ── RENDER SPORT TRACKER ────────────────────────────────────────────────────
+function renderSport() {
+  const container = document.getElementById('sport-list');
+  container.innerHTML = '';
+  const today = todayIdx();
+
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    const date = getDate(i);
+    const sportDay = isSport(i);
+    const isToday = i === today;
+    const isFuture = i > today;
+
+    const card = document.createElement('div');
+    card.className = 'day-card' + (isToday ? ' today' : '');
+
+    const pct = sport[i] ? 100 : 0;
+    const barBg = sport[i] ? 'var(--green)' : 'var(--surface2)';
+
+    card.innerHTML = `
+      <div class="day-card-top">
+        <div>
+          <div class="day-name">${DAYS_TR[date.getDay()]} <span style="font-size:12px;">${sportDay ? '🏋️' : '🚶'}</span></div>
+          <div class="day-date">${date.getDate()} ${MONTHS_TR[date.getMonth()]}</div>
+        </div>
+        ${isToday ? '<span class="today-label">Bugün</span>' : isFuture ? '<span class="future-label">Bekliyor</span>' : ''}
+      </div>
+      <div class="check-row" id="scheck-${i}"></div>
+      <div class="day-score">
+        <div class="score-bar-wrap"><div class="score-bar" id="sbar-${i}" style="width:${pct}%;background:${barBg};"></div></div>
+        <div class="score-pct" id="spct-${i}" style="font-size:12px;">${sport[i] ? '✓ Yapıldı' : '—'}</div>
+      </div>`;
+    container.appendChild(card);
+
+    const row = document.getElementById(`scheck-${i}`);
+
+    if (sportDay) {
+      // Sport day → single "Spora gittim" button
+      const btn = document.createElement('button');
+      btn.className = 'check-btn' + (sport[i] ? ' c-sport' : '');
+      btn.disabled = isFuture;
+      btn.style.flex = '1';
+      btn.innerHTML = `<span style="font-size:15px;">${sport[i] ? '✓' : '○'}</span> Spora gittim`;
+      btn.addEventListener('click', () => {
+        sport[i] = !sport[i];
+        saveSport(i, sport[i]);
+        btn.className = 'check-btn' + (sport[i] ? ' c-sport' : '');
+        btn.innerHTML = `<span style="font-size:15px;">${sport[i] ? '✓' : '○'}</span> Spora gittim`;
+        updateSportScore(i);
+        if (document.getElementById('page-stats').classList.contains('active')) updateStats();
+      });
+      row.appendChild(btn);
+    } else {
+      // Rest day
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:12px;color:var(--text3);padding:6px 0;';
+      lbl.textContent = 'Dinlenme günü — spor yok';
+      row.appendChild(lbl);
+    }
+  }
+}
+
+// ── STATS ────────────────────────────────────────────────────────────────────
+let barChart, lineChart, sportChart;
+
+function updateStats() {
+  const today = todayIdx();
+  let dTot = 0, dChk = 0, dFull = 0;
+  let sTot = 0, sChk = 0;
+  const dailyDiet = [], cumDiet = [], sportBar = [];
+  let cumC = 0, cumT = 0;
+
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    const meals = getDietMeals(i);
+    const tot = meals.length;
+    const chk = meals.filter(m => diet[i][m]).length;
+    dTot += tot; dChk += chk;
+    if (chk === tot && i <= today) dFull++;
+    const pct = Math.round((chk / tot) * 100);
+    dailyDiet.push(pct);
+    if (i <= today) { cumC += chk; cumT += tot; cumDiet.push(cumT ? Math.round(cumC/cumT*100) : 0); }
+    else cumDiet.push(null);
+
+    if (isSport(i)) {
+      sTot++;
+      if (sport[i] && i <= today) sChk++;
+      sportBar.push(sport[i] && i <= today ? 1 : (i <= today ? 0 : null));
+    } else {
+      sportBar.push(null);
+    }
+  }
+
+  const dPct = dTot ? Math.round(dChk/dTot*100) : 0;
+  const sPct = sTot ? Math.round(sChk/sTot*100) : 0;
+
+  document.getElementById('s-diet-pct').textContent = dPct + '%';
+  document.getElementById('s-diet-meals').textContent = dChk + '/' + dTot;
+  document.getElementById('s-sport-pct').textContent = sPct + '%';
+  document.getElementById('s-sport-days').textContent = sChk + '/' + sTot;
+
+  const labels = Array.from({length:TOTAL_DAYS}, (_,i) => { const d = getDate(i); return d.getDate() + ' ' + MONTHS_TR[d.getMonth()]; });
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const grid = isDark ? 'rgba(241,239,232,0.07)' : 'rgba(44,44,42,0.07)';
+  const tick = '#888780';
+  const barColors = dailyDiet.map(p => p===100?'#639922':p>=50?'#BA7517':p>0?'#E24B4A':(isDark?'#252523':'#F0EDE6'));
+
+  const baseOpts = (yMax=100, cb=v=>v+'%') => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw !== null ? cb(c.raw) : '—' } } },
+    scales: {
+      x: { grid: { color: grid }, ticks: { color: tick, font: { size: 9, family: 'DM Sans' }, maxRotation: 45 } },
+      y: { min: 0, max: yMax, grid: { color: grid }, ticks: { color: tick, font: { size: 10, family: 'DM Sans' }, callback: cb } }
+    }
+  });
+
+  if (barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: dailyDiet, backgroundColor: barColors, borderRadius: 4, borderSkipped: false }] },
+    options: baseOpts()
+  });
+
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ data: cumDiet, borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.08)', fill: true, tension: 0.4, pointBackgroundColor: '#185FA5', pointRadius: 3, spanGaps: false }] },
+    options: baseOpts()
+  });
+
+  if (sportChart) sportChart.destroy();
+  const sportColors = sportBar.map(v => v === 1 ? '#534AB7' : v === 0 ? '#E24B4A' : (isDark?'#252523':'#F0EDE6'));
+  sportChart = new Chart(document.getElementById('sportChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: sportBar.map(v => v === null ? 0 : 1), backgroundColor: sportColors, borderRadius: 4, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => { const v = sportBar[c.dataIndex]; return v===1?'Yapıldı':v===0?'Yapılmadı':'Spor günü değil'; } } } },
+      scales: {
+        x: { grid: { color: grid }, ticks: { color: tick, font: { size: 9, family: 'DM Sans' }, maxRotation: 45 } },
+        y: { display: false, min: 0, max: 1 }
+      }
+    }
+  });
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`).classList.add('active');
+  if (id === 'stats') updateStats();
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + tab).classList.add('active');
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('day-badge').textContent = DAYS_TR[new Date().getDay()];
+renderDiet();
+renderSport();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  if (!localStorage.getItem('installDismissed')) document.getElementById('install-banner').style.display = 'flex';
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; }
+  document.getElementById('install-banner').style.display = 'none';
+});
+document.getElementById('dismiss-btn').addEventListener('click', () => {
+  document.getElementById('install-banner').style.display = 'none';
+  localStorage.setItem('installDismissed', '1');
+});
+</script>
+</body>
+</html>
